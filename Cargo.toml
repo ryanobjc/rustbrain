@@ -1,0 +1,5 @@
+[package]
+
+name = "hello_world"
+version = "1.0.0"
+authors = [ "Ryan Awesome <ryan.awesome@gmail.com>" ]
