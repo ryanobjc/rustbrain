@@ -17,23 +17,23 @@ const CLOSE : u8 = ']' as u8;
 
 
 fn get_progn(filename: &str) -> Result<Vec<u8>> {
-
+    let mut f = try!(File::open(filename));
+    
     let mut buf_progn = Vec::new();
 
-    let mut f = try!(File::open(filename));
     try!(f.read_to_end(&mut buf_progn));
 
-
-    //try!(f.read_to_string(&mut s));
-    
     Ok(buf_progn)
 }
 
 
 fn main() {
-
-    // the data space starts as size 10, grows as necessary.
-    //let mut data : Vec<u8> = Vec::with_capacity(10);
+    // TODO read the source file from the args
+    
+    // This could be, in theory, a Vec, but I don't want to do the logic to autogrow it. 
+    // For now it's just easy to allocate X cells.  
+    // Here we are using 100 of i8s, but the wikipedia entry says 30,000 is typical. 
+    // I tried u8 but one the rot13 gets underflow math errors.
     let mut data : [i8 ; 100] = [0; 100];
     
     let progn = match get_progn("source2.txt") {
@@ -44,7 +44,6 @@ fn main() {
         }
     };
 
-    //println!("{}", program);
     let mut ptr : usize = 0;
     let mut pc : usize = 0;
     let mut stdin = stdin();
@@ -57,8 +56,6 @@ fn main() {
 
     while pc < progn_size {
         //println!("PC {}, cmd: {}", pc, progn[pc]);
-
-
         match progn[pc] {
             PLUS => {
                 data[ptr] += 1;
@@ -71,6 +68,7 @@ fn main() {
             },
             DEC_DATA => {
                 if ptr == 0 {
+                    // debug tracing
                     print_snippet(&progn, pc);
                     dump_cells(&data);
                     println!("data pointer already at 0 at pc {}", pc);
@@ -92,9 +90,8 @@ fn main() {
                 }
             },
             OPEN => {
-                // store this branch possibly?
                 if data[ptr] == 0 {
-                    seek_to_next_close(&progn, &mut pc);
+                    seek_to_next_balanced_close(&progn, &mut pc);
                     // the PC will be pointing to ] and the pc+=1 will be the right thing
                 } else {
                     // continue forward....
@@ -127,13 +124,12 @@ fn main() {
 
 // push the referenced program counter forward until the next
 // matching close bracket ].  Leave the PC pointing at the ]. 
-fn seek_to_next_close(progn : &Vec<u8>, pc : &mut usize) {
+fn seek_to_next_balanced_close(progn : &Vec<u8>, pc : &mut usize) {
     let mut opens = 0;
     *pc += 1;
     loop {
         match progn[*pc] {
             OPEN => {
-                // keep track of this open.
                 //println!("open at {}", *pc);
                 opens += 1;
             },
